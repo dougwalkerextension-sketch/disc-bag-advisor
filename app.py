@@ -48,6 +48,19 @@ async def detail(disc_id:str):
     result=await run_agent(disc_id=disc_id)
     return JSONResponse(result,status_code=503 if result.get('failed') else 200)
 
+class Shift(BaseModel):
+    reference_id:str=Field(min_length=1,max_length=100)
+    direction:Literal['overstable','understable','faster','slower']
+    brands:list[Literal['Innova','Latitude 64','MVP','Axiom']]=Field(default_factory=list,max_length=4)
+    sort:Literal['match','popularity','speed','name']='match'
+    bag:list[str]=Field(default_factory=list,max_length=100)
+
+@app.post('/api/shift')
+async def shift(body:Shift):
+    if not get_disc(body.reference_id): raise HTTPException(404,'Reference disc not found')
+    result=await run_agent(**body.model_dump())
+    return JSONResponse(result,status_code=503 if result.get('failed') else 200)
+
 app.mount('/static',StaticFiles(directory=ROOT/'static'),name='static')
 if __name__=='__main__':
     import uvicorn

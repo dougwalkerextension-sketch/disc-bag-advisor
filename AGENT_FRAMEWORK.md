@@ -26,6 +26,8 @@ flowchart TD
 
 Every request creates a fresh process/session, initializes MCP, discovers tools, and checks required capabilities. Disc search, ranking, image fetching, and selection tracking cross the MCP boundary in both model and fallback modes. The catalog endpoint only bootstraps the UI.
 
+Post-search directional refinement uses a `bounded-shift` branch: validated reference ID and direction → `shift_discs` MCP tool → observe candidates → `rank_discs` MCP tool. Explicit buttons require no model interpretation. The tool compares speed or turn + fade strictly against the leading result and scores proximity to a one-point directional target. Preferences and bag exclusions remain host-owned. Reference/direction are recorded in the run log. Speed limits are enforced in both UI and tool.
+
 ## Planning and authority
 
 The default local model is `mistral:7b`; `DISC_AGENT_MODEL` selects another installed tool-capable model. The loop permits four chat turns, at most two calls processed per turn, and a 25-second planning deadline. Search observations are fed back to the model, which can refine a search and select ranking. Missing calls get a reminder within the same finite budget.

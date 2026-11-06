@@ -58,6 +58,31 @@ def search_discs(query: str, brands: list[str] = []) -> dict:
     return dict(candidates=candidates,reference=refs,message='' if candidates else 'No matches in the starter catalog. Try fewer brand filters or a broader category.')
 
 @mcp.tool()
+def shift_discs(reference_id: str, direction: str, brands: list[str] = []) -> dict:
+    """Find discs faster/slower or more/less stable than the leading previous result."""
+    ref=get_disc(reference_id)
+    if not ref: raise ValueError('Unknown reference disc')
+    if direction not in ['faster','slower','overstable','understable']:
+        raise ValueError('Unknown shift direction')
+    speed=ref['speed']; stability=ref['turn']+ref['fade']
+    if (direction=='slower' and speed<=1) or (direction=='faster' and speed>=14):
+        return dict(candidates=[],reference=[ref],message='Already at the speed limit.')
+    target_speed=max(1,min(14,speed+({'faster':1,'slower':-1}.get(direction,0))))
+    target_stability=stability+({'overstable':1,'understable':-1}.get(direction,0))
+    candidates=[]
+    for original in CATALOG:
+        d=dict(original); balance=d['turn']+d['fade']
+        if brands and d['brand'] not in brands: continue
+        if direction=='faster' and d['speed']<=speed: continue
+        if direction=='slower' and d['speed']>=speed: continue
+        if direction=='overstable' and balance<=stability: continue
+        if direction=='understable' and balance>=stability: continue
+        distance=2*abs(d['speed']-target_speed)+abs(balance-target_stability)+.5*abs(d['glide']-ref['glide'])
+        d.update(score=round(max(0,100-8*distance),1),reason=f'{direction.capitalize()} than {ref["name"]}')
+        candidates.append(d)
+    return dict(candidates=candidates,reference=[ref],message='' if candidates else 'No discs match this shift in the starter catalog. Try another direction or fewer brand filters.')
+
+@mcp.tool()
 def rank_discs(candidates: list[dict], sort: str = 'match', bag: list[str] = []) -> dict:
     """Rank retrieved catalog discs; popularity means selections in this installation."""
     with db() as con: counts=dict(con.execute('SELECT disc_id,count FROM selections'))

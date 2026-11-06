@@ -11,7 +11,7 @@ from mcp.client.stdio import stdio_client
 
 ROOT=Path(__file__).parent
 
-async def run_agent(query=None, brands=None, sort='match', bag=None, disc_id=None):
+async def run_agent(query=None, brands=None, sort='match', bag=None, disc_id=None, reference_id=None, direction=None):
     run_id=str(uuid.uuid4()); trace=[]
     async def call(session,name,args):
         started=time.monotonic()
@@ -38,12 +38,20 @@ async def run_agent(query=None, brands=None, sort='match', bag=None, disc_id=Non
                     discovered=(await session.list_tools()).tools
                     available={t.name for t in discovered}
                     required={'manufacturer_image','record_selection'} if disc_id else {'search_discs','rank_discs'}
+                    if reference_id: required={'shift_discs','rank_discs'}
                     if not required<=available: raise RuntimeError('Required tools missing')
                     if disc_id:
                         image=await call(session,'manufacturer_image',{'disc_id':disc_id})
                         result.update(image)
                         try: await call(session,'record_selection',{'disc_id':disc_id})
                         except Exception: result['message']+=' Selection count could not be saved.'
+                    elif reference_id:
+                        found=await call(session,'shift_discs',{'reference_id':reference_id,'direction':direction,'brands':brands or []})
+                        result['reference']=found['reference']
+                        result['mode']='bounded-shift'
+                        if found['candidates']:
+                            result.update(await call(session,'rank_discs',{'candidates':found['candidates'],'sort':sort,'bag':bag or []}))
+                        else: result['message']=found['message']
                     else:
                         model=os.environ.get('DISC_AGENT_MODEL','mistral:7b').strip()
                         modeled=None
@@ -71,7 +79,7 @@ async def run_agent(query=None, brands=None, sort='match', bag=None, disc_id=Non
     try:
         from tools_server import DATA
         DATA.mkdir(parents=True,exist_ok=True)
-        record=dict(result,query=query,brands=brands,sort=sort,timestamp=time.time())
+        record=dict(result,query=query,brands=brands,sort=sort,reference_id=reference_id,direction=direction,timestamp=time.time())
         # One file per run avoids concurrent writers corrupting a shared JSONL stream.
         (DATA/f'{run_id}.json').write_text(json.dumps(record,ensure_ascii=False),encoding='utf-8')
     except OSError:

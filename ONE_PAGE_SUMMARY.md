@@ -4,6 +4,8 @@
 
 **Experience.** A responsive desktop/mobile UI offers sample searches, flight-number cards, manufacturer details, and add/remove bag actions. Sorting includes best match, speed, name, and popularity based on actual detail selections on this installation. Bagged discs are excluded from new recommendations.
 
+**Refine a search.** Shift toward more overstable, more understable, faster, or slower discs relative to the leading result. Preferences remain active. Slower is hidden at speed 1 and Faster at speed 14. Empty shifts preserve current results. Refinements execute through MCP and appear in the run trace.
+
 **MCP and framework.** Python/FastAPI serves the UI. A custom asyncio orchestrator uses the official MCP Python SDK and FastMCP over stdio. Local Ollama/Mistral selects search and rank tools and observes results. The host enforces preferences and candidate identity. Four model turns and explicit deadlines bound work. If the model fails, a clearly identified deterministic MCP workflow handles supported searches. AGENT_FRAMEWORK.md documents decisions, controls, retries, and the execution graph.
 
 **Recovery.** Invalid input and unknown discs receive controlled errors. Tool/model outages produce recovery messages; read calls retry once, selection increments never retry. Manufacturer fetching uses fixed official URLs, an HTTPS allowlist, bounded redirects, timeout/size limits, one-day cache, and stale fallback. Missing/blocked images preserve recommendations and an official-page link. Browser image failures receive a recovery message; the saved bag persists.
