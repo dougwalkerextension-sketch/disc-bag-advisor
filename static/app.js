@@ -48,7 +48,44 @@ async function shiftResults(direction){
   if(direction==='slower'&&shiftAnchor.speed<=1||direction==='faster'&&shiftAnchor.speed>=14)return;
   await requestResults('/api/shift',{reference_id:shiftAnchor.id,direction,...preferences()},true);
 }
-async function openDisc(d){active=d;const version=++detailVersion;$('detail-brand').textContent=d.brand;$('detail-name').textContent=d.name;$('detail-flight').textContent=`Speed ${d.speed} · Glide ${d.glide} · Turn ${d.turn} · Fade ${d.fade}`;$('manufacturer').href=d.source;$('detail-image').hidden=true;$('detail-image').removeAttribute('src');$('image-status').hidden=false;$('image-status').textContent='Finding manufacturer image…';$('add-bag').textContent=bag.includes(d.id)?'Already in your bag':'Add to my bag';$('add-bag').disabled=bag.includes(d.id);$('detail').showModal();try{const data=await api('/api/discs/'+encodeURIComponent(d.id),{});if(version!==detailVersion)return;showTrace(data);$('image-status').textContent=data.message||'';if(data.image_url&&/^https:\/\//.test(data.image_url)){const img=$('detail-image');img.alt=`${d.brand} ${d.name} — manufacturer image`;img.onload=()=>{if(version===detailVersion){img.hidden=false;$('image-status').hidden=!data.message}};img.onerror=()=>{if(version===detailVersion){img.hidden=true;$('image-status').hidden=false;$('image-status').textContent='The image could not load. Visit the manufacturer page below.'}};img.src=data.image_url}}catch(e){if(version===detailVersion)$('image-status').textContent='Manufacturer image unavailable. Visit the official page below.'}}
+let stockVersion=0;
+function stockLink(url,text){
+  try{const parsed=new URL(url);if(parsed.protocol!=='https:'||parsed.username||parsed.password)return el('span',text)}catch{return el('span',text)}
+  const link=el('a',text);link.href=url;link.target='_blank';link.rel='noopener noreferrer';return link;
+}
+function renderStock(data){
+  $('stock-offers').replaceChildren();
+  $('stock-status').textContent=data.message||`${data.offers.length} offers returned by DiscFinder.`;
+  const context=data.query_context||{};
+  $('stock-note').textContent=`Prices and availability are reported by DiscFinder for ${context.target_country_name||data.country_code}${context.target_currency?' in '+context.target_currency:''}. Shipping and checkout charges are excluded. Confirm the product and stock with the retailer.`;
+  for(const offer of data.offers||[]){
+    const row=el('article',undefined,'stock-offer');
+    row.append(stockLink(offer.purchase_url,`${offer.retailer||'Retailer'} - ${offer.price||'See retailer for price'}`));
+    const details=[offer.country,offer.plastic,offer.weight,Array.isArray(offer.colors)?offer.colors.join(', '):''].filter(Boolean).join(' | ');
+    row.append(el('p',details));
+    if(offer.is_local_retailer)row.append(el('small','Retailer in selected country'));
+    if(offer.affiliate_disclosure)row.append(el('p',offer.affiliate_disclosure,'hint'));
+    $('stock-offers').append(row);
+  }
+  $('stock-trace').textContent=`${data.source}\n${data.tool}\nRun ${data.run_id}\nChecked ${data.checked_at}\n`+JSON.stringify(data.trace,null,2);
+}
+async function loadStock(d,version){
+  const request=++stockVersion;
+  $('stock-status').textContent='Checking retailer stock through DiscFinder MCP?';
+  $('stock-offers').replaceChildren();$('stock-note').textContent='';$('stock-trace').textContent='Connecting to https://finder.golfwithdiscs.com/mcp';
+  $('stock-retry').disabled=true;$('stock-offers').setAttribute('aria-busy','true');
+  try{
+    const data=await api('/api/discs/'+encodeURIComponent(d.id)+'/stock',{country_code:$('stock-country').value});
+    if(request!==stockVersion||version!==detailVersion)return;renderStock(data);
+  }catch(e){
+    if(request!==stockVersion||version!==detailVersion)return;
+    $('stock-status').textContent='DiscFinder is unavailable. Refresh stock to retry. No alternate stock source was used.';
+    $('stock-trace').textContent='https://finder.golfwithdiscs.com/mcp\nfind_retailer_stock: unavailable';
+  }finally{if(request===stockVersion){$('stock-retry').disabled=false;$('stock-offers').setAttribute('aria-busy','false')}}
+}
+$('stock-country').onchange=()=>{if(active&&$('detail').open)loadStock(active,detailVersion)};
+$('stock-retry').onclick=()=>{if(active&&$('detail').open)loadStock(active,detailVersion)};
+async function openDisc(d){active=d;const version=++detailVersion;$('detail-brand').textContent=d.brand;$('detail-name').textContent=d.name;$('detail-flight').textContent=`Speed ${d.speed} · Glide ${d.glide} · Turn ${d.turn} · Fade ${d.fade}`;$('manufacturer').href=d.source;$('detail-image').hidden=true;$('detail-image').removeAttribute('src');$('image-status').hidden=false;$('image-status').textContent='Finding manufacturer image…';$('add-bag').textContent=bag.includes(d.id)?'Already in your bag':'Add to my bag';$('add-bag').disabled=bag.includes(d.id);$('detail').showModal();loadStock(d,version);try{const data=await api('/api/discs/'+encodeURIComponent(d.id),{});if(version!==detailVersion)return;showTrace(data);$('image-status').textContent=data.message||'';if(data.image_url&&/^https:\/\//.test(data.image_url)){const img=$('detail-image');img.alt=`${d.brand} ${d.name} — manufacturer image`;img.onload=()=>{if(version===detailVersion){img.hidden=false;$('image-status').hidden=!data.message}};img.onerror=()=>{if(version===detailVersion){img.hidden=true;$('image-status').hidden=false;$('image-status').textContent='The image could not load. Visit the manufacturer page below.'}};img.src=data.image_url}}catch(e){if(version===detailVersion)$('image-status').textContent='Manufacturer image unavailable. Visit the official page below.'}}
 $('search').onsubmit=search;document.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>{$('query').value=b.dataset.query;search()});$('sort').onchange=()=>{if(lastShift)requestResults('/api/shift',{...lastShift,...preferences()},true);else if($('query').value.trim())search()};$('close-detail').onclick=()=>{$('detail').close();detailVersion++};$('detail').addEventListener('cancel',()=>detailVersion++);$('add-bag').onclick=()=>{if(active&&!bag.includes(active.id)){bag.push(active.id);saveBag();$('add-bag').disabled=true;$('add-bag').textContent='Added to your bag'}};$('bag-toggle').onclick=()=>{$('bag-panel').hidden=!$('bag-panel').hidden;if(!$('bag-panel').hidden)$('bag-panel').scrollIntoView({behavior:'smooth'})};
 function renderBrands(data){
   const options=$('brand-options');options.replaceChildren();

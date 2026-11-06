@@ -1,0 +1,6 @@
+{
+  "endpoint": "https://finder.golfwithdiscs.com/mcp",
+  "tool": "find_retailer_stock",
+  "default_country": "US",
+  "limit": 10
+}

@@ -56,6 +56,16 @@ async def detail(disc_id:str):
     result=await run_agent(disc_id=disc_id)
     return JSONResponse(result,status_code=503 if result.get('failed') else 200)
 
+class StockRequest(BaseModel):
+    country_code:str=Field(default='US',pattern=r'^[A-Z]{2}$')
+
+@app.post('/api/discs/{disc_id}/stock')
+async def stock(disc_id:str,body:StockRequest):
+    if not get_disc(disc_id): raise HTTPException(404,'Disc not found')
+    from discfinder import lookup_stock
+    result=await lookup_stock(disc_id,body.country_code)
+    return JSONResponse(result,status_code=503 if result['status']=='unavailable' else 200)
+
 class Shift(Preferences):
     reference_id:str=Field(min_length=1,max_length=100)
     direction:Literal['overstable','understable','faster','slower']

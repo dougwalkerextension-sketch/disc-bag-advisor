@@ -81,3 +81,33 @@ The filter includes all 20 brands on the supplied [DiscList page](https://thedis
 Innova, Axiom, Discraft, Discmania, MVP, Latitude 64, Kastaplast, RPM, Dynamic Discs, Westside, Clash Discs, Streamline, Thought Space Athletics, Infinite Discs, Mint Discs, Prodigy, Divergent Discs, Doomsday Discs, Gateway, and Elevation are included. Short DiscList labels such as Thought Space, Infinite, Mint, Clash, Divergent, and Doomsday use their fuller brand names in the app.
 
 Flight ratings link to manufacturer product pages. The expanded records include current source-specific ratings: Clash Soda is 7/5/-2/2, Divergent Kraken is 8/5/-1/2, Prodigy F5 is 8/6/-2/1, and the selected Elevation glO-G Koi run is 3/4/-2/0. Plastics/runs and published ratings can differ from older retailer listings. Manufacturer imagery remains best effort with the existing source-link and cache fallback.
+
+## DiscFinder MCP on View disc
+
+**View disc** now opens manufacturer details and independently requests stock from Golf With Discs DiscFinder at `https://finder.golfwithdiscs.com/mcp`. The backend uses the official MCP SDK's Streamable HTTP transport, initializes the remote server, lists its tools, verifies `find_retailer_stock`, and calls that tool with the selected catalog disc slug. A live connection to `golfwithdiscs-finder` version 1.1.0 and successful Leopard3 stock lookup were verified on November 6, 2026. No API key or login was required for those public calls.
+
+The dialog shows source-returned retailer links, prices, country, plastic, weight, colors, and affiliate disclosures when supplied. Choose a country to request fresh localized results; the default is US. Countries/currencies reflect the server response. A country preference localizes results and currency; international retailers can still appear. Prices exclude shipping/checkout charges, and converted amounts may be estimates. Results may contain imperfect product matches, so confirm the linked product and stock with the retailer. No purchase is performed by the app.
+
+`discfinder.json` declares the fixed endpoint, tool, default country, and offer limit (10). Each lookup has a 25-second overall deadline, uses no OpenAI credentials, and writes an independent UUID audit record including the source, tool, country, timestamp, offers, and trace. Offers are not cached as live stock. Not-found and no-offer results are distinct from service outages. Missing-tool, transport, and remote failures produce an unavailable state. Stock errors show a retry message; they never use web searches, general model knowledge, or another stock service. Manufacturer photos and bag controls remain usable independently.
+
+The remote stock interface is independent of the local recommendation catalog. This change does not make the initial recommendation search use DiscFinder; it routes the requested **View disc** stock lookup to DiscFinder. The returned data is rendered as text and validated HTTPS links, not executed as HTML or instructions.
+
+### Codex connection
+
+The server was also registered in this user's Codex configuration using the supported command:
+
+```powershell
+codex mcp add golfwithdiscs-discfinder --url https://finder.golfwithdiscs.com/mcp
+codex mcp get golfwithdiscs-discfinder --json
+```
+
+The installed Codex VS Code extension reads that MCP configuration. Start a new Codex session or reload the VS Code window to load newly registered tools into the native assistant tool list if needed. DiscBag's direct MCP client is already connected and does not depend on Codex reloading or its configuration. The user-level Codex config is local and is not published in this repository.
+
+Verify directly with this app's local interpreter:
+
+```powershell
+./.runtime/python.exe tests/check_discfinder.py
+./.runtime/python.exe tests/browser_discfinder_check.py
+```
+
+The first performs a live tool discovery and stock call; the second checks the actual View disc flow, country switching, and no-substitute outage handling. Neither uses a normal web search or a language model for stock.
