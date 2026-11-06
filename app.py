@@ -5,18 +5,26 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
-from catalog import CATALOG, get_disc
+from pydantic import BaseModel, Field, field_validator
+from catalog import CATALOG, BRANDS, POPULAR_BRANDS, BRAND_POPULARITY_SOURCE, get_disc
 from agent import run_agent
 
 ROOT=Path(__file__).parent
 app=FastAPI(title='Disc Bag Advisor')
 
-class Search(BaseModel):
-    query:str=Field(min_length=1,max_length=300)
-    brands:list[Literal['Innova','Latitude 64','MVP','Axiom']]=Field(default_factory=list,max_length=4)
+class Preferences(BaseModel):
+    brands:list[str]=Field(default_factory=list,max_length=len(BRANDS))
     sort:Literal['match','popularity','speed','name']='match'
     bag:list[str]=Field(default_factory=list,max_length=100)
+
+    @field_validator('brands')
+    @classmethod
+    def known_brands(cls,value):
+        if any(b not in BRANDS for b in value): raise ValueError('Unknown brand')
+        return list(dict.fromkeys(value))
+
+class Search(Preferences):
+    query:str=Field(min_length=1,max_length=300)
 
 @app.middleware('http')
 async def local_only(request:Request,call_next):
@@ -35,7 +43,7 @@ async def local_only(request:Request,call_next):
 def index(): return FileResponse(ROOT/'static/index.html')
 
 @app.get('/api/catalog')
-def catalog(): return {'discs':CATALOG}
+def catalog(): return {'discs':CATALOG,'brands':BRANDS,'popular_brands':POPULAR_BRANDS,'brand_popularity_source':BRAND_POPULARITY_SOURCE}
 
 @app.post('/api/recommend')
 async def recommend(body:Search):
@@ -48,12 +56,9 @@ async def detail(disc_id:str):
     result=await run_agent(disc_id=disc_id)
     return JSONResponse(result,status_code=503 if result.get('failed') else 200)
 
-class Shift(BaseModel):
+class Shift(Preferences):
     reference_id:str=Field(min_length=1,max_length=100)
     direction:Literal['overstable','understable','faster','slower']
-    brands:list[Literal['Innova','Latitude 64','MVP','Axiom']]=Field(default_factory=list,max_length=4)
-    sort:Literal['match','popularity','speed','name']='match'
-    bag:list[str]=Field(default_factory=list,max_length=100)
 
 @app.post('/api/shift')
 async def shift(body:Shift):

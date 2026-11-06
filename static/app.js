@@ -50,4 +50,22 @@ async function shiftResults(direction){
 }
 async function openDisc(d){active=d;const version=++detailVersion;$('detail-brand').textContent=d.brand;$('detail-name').textContent=d.name;$('detail-flight').textContent=`Speed ${d.speed} · Glide ${d.glide} · Turn ${d.turn} · Fade ${d.fade}`;$('manufacturer').href=d.source;$('detail-image').hidden=true;$('detail-image').removeAttribute('src');$('image-status').hidden=false;$('image-status').textContent='Finding manufacturer image…';$('add-bag').textContent=bag.includes(d.id)?'Already in your bag':'Add to my bag';$('add-bag').disabled=bag.includes(d.id);$('detail').showModal();try{const data=await api('/api/discs/'+encodeURIComponent(d.id),{});if(version!==detailVersion)return;showTrace(data);$('image-status').textContent=data.message||'';if(data.image_url&&/^https:\/\//.test(data.image_url)){const img=$('detail-image');img.alt=`${d.brand} ${d.name} — manufacturer image`;img.onload=()=>{if(version===detailVersion){img.hidden=false;$('image-status').hidden=!data.message}};img.onerror=()=>{if(version===detailVersion){img.hidden=true;$('image-status').hidden=false;$('image-status').textContent='The image could not load. Visit the manufacturer page below.'}};img.src=data.image_url}}catch(e){if(version===detailVersion)$('image-status').textContent='Manufacturer image unavailable. Visit the official page below.'}}
 $('search').onsubmit=search;document.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>{$('query').value=b.dataset.query;search()});$('sort').onchange=()=>{if(lastShift)requestResults('/api/shift',{...lastShift,...preferences()},true);else if($('query').value.trim())search()};$('close-detail').onclick=()=>{$('detail').close();detailVersion++};$('detail').addEventListener('cancel',()=>detailVersion++);$('add-bag').onclick=()=>{if(active&&!bag.includes(active.id)){bag.push(active.id);saveBag();$('add-bag').disabled=true;$('add-bag').textContent='Added to your bag'}};$('bag-toggle').onclick=()=>{$('bag-panel').hidden=!$('bag-panel').hidden;if(!$('bag-panel').hidden)$('bag-panel').scrollIntoView({behavior:'smooth'})};
-api('/api/catalog').then(data=>{catalog=data.discs;renderBag();cards(catalog.filter(d=>['leopard3','river','crave'].includes(d.name.toLowerCase())))}).catch(()=>{$('status').textContent='The catalog is unavailable. Refresh to retry.'});renderBag();
+function renderBrands(data){
+  const options=$('brand-options');options.replaceChildren();
+  const popular=new Set(data.popular_brands||[]);
+  const brands=data.brands||[...new Set(data.discs.map(d=>d.brand))].sort();
+  for(const brand of brands){
+    const label=el('label');const input=el('input');input.type='checkbox';input.value=brand;
+    label.append(input,document.createTextNode(' '+brand));label.dataset.extra=String(!popular.has(brand));
+    label.hidden=!popular.has(brand);options.append(label);
+  }
+  const toggle=$('show-brands');const extra=brands.filter(b=>!popular.has(b)).length;
+  toggle.hidden=!extra;
+  const update=()=>{const expanded=toggle.getAttribute('aria-expanded')==='true';const selected=[...options.querySelectorAll('label[data-extra="true"] input:checked')].length;
+    toggle.textContent=expanded?'Show less':`Show more (${extra})${selected?` · ${selected} selected`:''}`;
+    for(const label of options.children)label.hidden=label.dataset.extra==='true'&&!expanded;
+  };
+  toggle.onclick=()=>{toggle.setAttribute('aria-expanded',String(toggle.getAttribute('aria-expanded')!=='true'));update()};
+  options.onchange=update;update();
+}
+api('/api/catalog').then(data=>{catalog=data.discs;renderBrands(data);$('result-count').textContent=`${catalog.length} discs / ${data.brands.length} brands`;renderBag();cards(catalog.filter(d=>['leopard3','river','crave'].includes(d.name.toLowerCase())))}).catch(()=>{$('status').textContent='The catalog is unavailable. Refresh to retry.'});renderBag();

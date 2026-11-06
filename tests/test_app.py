@@ -68,6 +68,10 @@ class Recommendations(unittest.TestCase):
         self.assertIn('unavailable',result['message'])
     def test_api_validation(self):
         with TestClient(app) as client:
+            metadata=client.get('/api/catalog').json()
+            self.assertEqual(len(metadata['popular_brands']),5)
+            self.assertEqual(set(metadata['brands']),{d['brand'] for d in metadata['discs']})
+            self.assertEqual(client.post('/api/recommend',json={'query':'all','brands':['Unknown']}).status_code,422)
             self.assertEqual(client.get('/').status_code,200)
             self.assertEqual(client.post('/api/recommend',json={'query':'all','sort':'invented'}).status_code,422)
             self.assertEqual(client.post('/api/discs/nope',json={}).status_code,404)

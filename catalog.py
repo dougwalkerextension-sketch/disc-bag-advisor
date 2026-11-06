@@ -1,5 +1,8 @@
 """Small, source-linked starter catalog. Flight numbers are guidance, not guarantees."""
 ROWS = [
+    ('Discraft','Buzzz',5,4,-1,1,'midrange','https://www.team.discraft.com/discs/buzzz'),
+    ('Discmania','FD',7,6,0,1,'fairway','https://www.discmania.net/products/c-line-fd'),
+    ('Streamline','Drift',7,5,-2,1,'fairway','https://streamlinediscs.com/discs/drift/'),
     ('Innova','Leopard3',7,5,-2,1,'fairway','https://www.innovadiscs.com/disc/leopard3/'),
     ('Innova','Leopard',6,5,-2,1,'fairway','https://www.innovadiscs.com/disc/leopard/'),
     ('Innova','TeeBird',7,5,0,2,'fairway','https://www.innovadiscs.com/disc/teebird/'),
@@ -24,6 +27,11 @@ ROWS = [
 ]
 CATALOG = [dict(id=f'{r[0]}-{r[1]}'.lower().replace(' ','-'),brand=r[0],name=r[1],
     speed=r[2],glide=r[3],turn=r[4],fade=r[5],category=r[6],source=r[7]) for r in ROWS]
+
+# OTB's reported 2025 retail sales, not a claim about worldwide market share.
+POPULAR_BRANDS = ['Discraft','Axiom','MVP','Innova','Discmania']
+BRANDS = POPULAR_BRANDS + sorted({d['brand'] for d in CATALOG}-set(POPULAR_BRANDS))
+BRAND_POPULARITY_SOURCE = 'https://otbdiscs.com/otbs-top-100-discs-of-2025/'
 
 def get_disc(disc_id):
     return next((dict(d) for d in CATALOG if d['id']==disc_id), None)

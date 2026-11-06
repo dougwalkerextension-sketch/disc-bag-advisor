@@ -111,7 +111,8 @@ def allowed(url):
     p=urlparse(url)
     return p.scheme=='https' and not p.username and p.port in (None,443) and any(
         p.hostname==h or (p.hostname or '').endswith('.'+h) for h in
-        ['innovadiscs.com','latitude64.com','mvpdiscsports.com','axiomdiscs.com','shopify.com'])
+        ['innovadiscs.com','latitude64.com','mvpdiscsports.com','axiomdiscs.com','shopify.com',
+         'discraft.com','discmania.net','streamlinediscs.com'])
 
 @mcp.tool()
 async def manufacturer_image(disc_id: str) -> dict:
