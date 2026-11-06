@@ -32,3 +32,9 @@ h1{font-size:clamp(28px,3.6vw,44px);line-height:1.1;letter-spacing:-1.5px;margin
 .stock-offer a{font-size:14px;font-weight:650}
 .stock-offer p{font-size:12px;color:var(--muted);margin:5px 0}
 .stock-offer small{font-size:11px}
+
+/* One shared activity indicator, including overlapping detail and stock requests. */
+.disc{animation:disc-spin 1.4s linear infinite;animation-play-state:paused}
+body.is-active .disc{animation-play-state:running;will-change:transform}
+@keyframes disc-spin{from{transform:rotate(-19deg)}to{transform:rotate(341deg)}}
+@media(prefers-reduced-motion:reduce){.disc{animation:none}}

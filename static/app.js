@@ -2,7 +2,23 @@ const $=id=>document.getElementById(id);
 let bag=[],catalog=[],active=null,searchVersion=0,detailVersion=0,shiftAnchor=null,lastShift=null;
 try{const saved=JSON.parse(localStorage.getItem('fieldwork-bag')||'[]');if(Array.isArray(saved))bag=saved.filter(x=>typeof x==='string').slice(0,100)}catch{}
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}
-async function api(path,body){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),70000);try{const r=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});const data=await r.json();if(!r.ok)throw Error(data.message||'The request could not be completed. Please retry.');return data}finally{clearTimeout(timer)}}
+let pendingRequests=0;
+function updateActivity(change){
+  pendingRequests=Math.max(0,pendingRequests+change);
+  document.body.classList.toggle('is-active',pendingRequests>0);
+}
+async function api(path,body){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),70000);
+  updateActivity(1);
+  try{
+    const r=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
+    const data=await r.json();
+    if(!r.ok)throw Error(data.message||'The request could not be completed. Please retry.');
+    return data;
+  }finally{clearTimeout(timer);updateActivity(-1)}
+}
+
 function saveBag(){try{localStorage.setItem('fieldwork-bag',JSON.stringify(bag))}catch{$('status').textContent='Your bag works for this session, but browser storage is unavailable.'}renderBag()}
 function renderBag(){$('bag-count').textContent=bag.length;$('bag-items').replaceChildren();for(const id of bag){const d=catalog.find(x=>x.id===id);const row=el('div');row.append(el('span',d?`${d.brand} ${d.name}`:id));const remove=el('button','Remove');remove.onclick=()=>{bag=bag.filter(x=>x!==id);saveBag()};row.append(remove);$('bag-items').append(row)}if(!bag.length)$('bag-items').append(el('p','Your next favorite belongs here.'))}
 function showTrace(data){$('trace').textContent=`Run ${data.run_id} · ${data.mode}\n`+data.trace.map(t=>`${t.tool}: ${t.status}${t.elapsed_ms!==undefined?` · ${t.elapsed_ms}ms · attempt ${t.attempt}`:''}`).join('\n')}
