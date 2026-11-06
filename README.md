@@ -12,7 +12,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
-Open **http://127.0.0.1:8010**. In the original DGRag workspace, `./start.ps1` also uses the existing portable runtime. This independent app does not read the Poe app's `.env`.
+Open **http://127.0.0.1:8010**. The app now lives in `C:/Users/dougw/DiscBag`. `./start.ps1` uses a local virtual environment when present, otherwise the existing Python runtime at `../DGRag/.runtime/python.exe`. In this VS Code workspace, run the **Start Disc Bag Advisor** task, or run `../DGRag/.runtime/python.exe app.py` in the terminal. The included VS Code launch configuration also supports F5 with the Python debugger extension installed. This independent app does not read the Poe app's `.env`.
 
 For model mode, install/start [Ollama](https://ollama.com/) and run `ollama pull mistral:7b`. The default is `mistral:7b`, configured with the `DISC_AGENT_MODEL` environment variable. The only model endpoint is `http://127.0.0.1:11434/api/chat`; no paid model or API key is needed. Set `DISC_AGENT_MODEL` to an empty string for the deterministic workflow. Model errors/timeouts automatically fall back; the UI trace identifies the actual mode.
 
