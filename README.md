@@ -31,11 +31,11 @@ Missing keys, authentication failures, quotas, network issues, malformed tool ca
 - `Similar to River and Crave` averages distance from up to three named references.
 - `understable fairway driver`, `stable midrange`, `overstable distance driver`, or `putter` filter by flight category.
 - Selected brands are strict filters. Leave unchecked to include all brands.
-- Sorting appears above brand preferences. The default brand list shows Discraft, Axiom, MVP, Innova, and Discmania, based on [OTB's 2025 retail sales ranking](https://otbdiscs.com/otbs-top-100-discs-of-2025/), not worldwide market share. **Show more** reveals every remaining catalog brand. No brand is checked by default. Collapsing the list retains filters and reports hidden selections on the button. Available brands come from the catalog API and are validated against the same catalog registry.
+- Sorting appears above brand preferences. The default brand list shows Innova, Axiom, Discraft, Discmania, and MVP, based on [The DiscList's published manufacturer ranking](https://thedisclist.com/brands/) dated October 16, 2026, which combines retail availability and market signals rather than measuring sales. **Show more** reveals every remaining catalog brand. No brand is checked by default. Collapsing the list retains filters and reports hidden selections on the button. Available brands come from the catalog API and are validated against the same catalog registry.
 - After a search, use **More overstable**, **More understable**, **Faster**, or **Slower** to shift from the leading displayed result. The reference name, speed, and turn + fade appear beside the controls. Each click searches the catalog through MCP, preserves current brand/sort/bag preferences, and requires strictly higher/lower speed or stability. Speed shifts may cross disc categories. Slower is hidden at speed 1; Faster is hidden at speed 14. Empty shifts retain the current results. Changing sort preserves the latest shift; submitting a search starts fresh.
 - Open a result for manufacturer imagery and add it to your bag. Bagged discs are excluded from subsequent searches; **My bag** allows removal.
 
-The starter catalog has **24 discs across seven brands**. Flight numbers are source-linked curated seed data, not a complete or continuously refreshed database. Similarity uses weighted flight-number distance. Stability categories use turn + fade: understable < 0; stable >= 0 and < 2; overstable >= 2. This application heuristic is not a universal manufacturer standard. Weight, plastic, wear, power, and release affect actual flight.
+The starter catalog has **37 discs across 20 manufacturers**. Flight numbers are source-linked curated seed data, not a complete or continuously refreshed database. Similarity uses weighted flight-number distance. Stability categories use turn + fade: understable < 0; stable >= 0 and < 2; overstable >= 2. This application heuristic is not a universal manufacturer standard. Weight, plastic, wear, power, and release affect actual flight.
 
 Popularity means **detail-card selections on this installation**, stored in SQLite. It is not global sales. Fresh installations start at zero; ties use match score then name. Adding to a bag does not itself increment popularity.
 
@@ -73,3 +73,11 @@ The first command runs offline checks including real MCP transport. The second v
 ## Standalone verification
 
 Run `.runtime/python.exe tests/check_standalone.py` (or the Python in your local `.venv`). This checks interpreter/import paths, runs real MCP search/ranking, and verifies MCP uses this interpreter, with no sibling project dependency. The base app works without OpenAI connectivity through its bounded fallback; OpenAI planning requires an API key and internet access. Manufacturer imagery also requires internet access.
+
+## Manufacturer coverage
+
+The filter includes all 20 brands on the supplied [DiscList page](https://thedisclist.com/brands/), with at least one actual source-linked disc per brand. Five defaults are shown initially; **Show more (15)** reveals the rest. The sidebar states the total manufacturer count. This is a dated, curated coverage/ranking snapshot, not a live ranking feed or a claim to list every manufacturer worldwide. Some brands have only one seed disc, so a specific category or similarity search may still return no matches for them.
+
+Innova, Axiom, Discraft, Discmania, MVP, Latitude 64, Kastaplast, RPM, Dynamic Discs, Westside, Clash Discs, Streamline, Thought Space Athletics, Infinite Discs, Mint Discs, Prodigy, Divergent Discs, Doomsday Discs, Gateway, and Elevation are included. Short DiscList labels such as Thought Space, Infinite, Mint, Clash, Divergent, and Doomsday use their fuller brand names in the app.
+
+Flight ratings link to manufacturer product pages. The expanded records include current source-specific ratings: Clash Soda is 7/5/-2/2, Divergent Kraken is 8/5/-1/2, Prodigy F5 is 8/6/-2/1, and the selected Elevation glO-G Koi run is 3/4/-2/0. Plastics/runs and published ratings can differ from older retailer listings. Manufacturer imagery remains best effort with the existing source-link and cache fallback.

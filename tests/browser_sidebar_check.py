@@ -7,12 +7,15 @@ with sync_playwright() as p:
     page=browser.new_page(viewport={'width':1200,'height':900})
     errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
     page.goto('http://127.0.0.1:8010')
-    expect(page.locator('#brand-options label')).to_have_count(7)
-    assert page.locator('#brand-options label:visible').all_text_contents()==[' Discraft',' Axiom',' MVP',' Innova',' Discmania']
+    metadata=page.request.get('http://127.0.0.1:8010/api/catalog').json()
+    total=len(metadata['brands'])
+    assert total>=20
+    expect(page.locator('#brand-options label')).to_have_count(total)
+    assert page.locator('#brand-options label:visible').all_text_contents()==[' '+brand for brand in metadata['popular_brands']]
     assert page.locator('#sort').bounding_box()['y']<page.locator('#brands').bounding_box()['y']
     expect(page.locator('#brands input:checked')).to_have_count(0)
     page.get_by_role('button',name='Show more',exact=False).click()
-    expect(page.locator('#brand-options label:visible')).to_have_count(7)
+    expect(page.locator('#brand-options label:visible')).to_have_count(total)
     page.locator('#brands input[value="Streamline"]').check()
     page.get_by_role('button',name='Show less',exact=True).click()
     expect(page.locator('#brand-options label:visible')).to_have_count(5)
@@ -27,5 +30,5 @@ with sync_playwright() as p:
     page.set_viewport_size({'width':390,'height':844})
     assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth')
     assert not errors,errors
-    print('PASS: sort before brands; five popular defaults; expand/collapse all seven; hidden selection retained and applied; mobile; no JS errors.')
+    print('PASS: sort before brands; five popular defaults; expand/collapse all manufacturers; hidden selection retained and applied; mobile; no JS errors.')
     browser.close()

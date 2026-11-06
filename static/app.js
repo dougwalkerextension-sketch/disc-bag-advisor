@@ -59,6 +59,7 @@ function renderBrands(data){
     label.append(input,document.createTextNode(' '+brand));label.dataset.extra=String(!popular.has(brand));
     label.hidden=!popular.has(brand);options.append(label);
   }
+  $('brand-total').textContent=`${brands.length} manufacturers available.`;
   const toggle=$('show-brands');const extra=brands.filter(b=>!popular.has(b)).length;
   toggle.hidden=!extra;
   const update=()=>{const expanded=toggle.getAttribute('aria-expanded')==='true';const selected=[...options.querySelectorAll('label[data-extra="true"] input:checked')].length;

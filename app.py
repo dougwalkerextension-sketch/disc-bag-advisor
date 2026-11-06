@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
-from catalog import CATALOG, BRANDS, POPULAR_BRANDS, BRAND_POPULARITY_SOURCE, get_disc
+from catalog import CATALOG, BRANDS, POPULAR_BRANDS, BRAND_POPULARITY_SOURCE, BRAND_RANKING_DATE, get_disc
 from agent import run_agent
 
 ROOT=Path(__file__).parent
@@ -43,7 +43,7 @@ async def local_only(request:Request,call_next):
 def index(): return FileResponse(ROOT/'static/index.html')
 
 @app.get('/api/catalog')
-def catalog(): return {'discs':CATALOG,'brands':BRANDS,'popular_brands':POPULAR_BRANDS,'brand_popularity_source':BRAND_POPULARITY_SOURCE}
+def catalog(): return {'discs':CATALOG,'brands':BRANDS,'popular_brands':POPULAR_BRANDS,'brand_popularity_source':BRAND_POPULARITY_SOURCE,'brand_ranking_date':BRAND_RANKING_DATE}
 
 @app.post('/api/recommend')
 async def recommend(body:Search):

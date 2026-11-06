@@ -14,6 +14,27 @@ from app import app
 from fastapi.testclient import TestClient
 
 class Recommendations(unittest.TestCase):
+    def test_all_twenty_manufacturers_have_searchable_discs(self):
+        from catalog import BRANDS, CATALOG, POPULAR_BRANDS
+        expected={'Innova','Axiom','Discraft','Discmania','MVP','Latitude 64','Kastaplast','RPM',
+            'Dynamic Discs','Westside','Clash Discs','Streamline','Thought Space Athletics',
+            'Infinite Discs','Mint Discs','Prodigy','Divergent Discs','Doomsday Discs','Gateway','Elevation'}
+        self.assertTrue(expected<=set(BRANDS))
+        self.assertGreaterEqual(len(BRANDS),20)
+        self.assertEqual(POPULAR_BRANDS,['Innova','Axiom','Discraft','Discmania','MVP'])
+        for brand in expected:
+            matches=search_discs('all',[brand])['candidates']
+            self.assertTrue(matches,brand)
+            self.assertTrue(all(d['brand']==brand and allowed(d['source']) for d in matches),brand)
+        self.assertEqual(len({d['id'] for d in CATALOG}),len(CATALOG))
+
+    def test_api_accepts_all_twenty_brand_filters(self):
+        from catalog import BRANDS
+        with TestClient(app) as client:
+            response=client.post('/api/recommend',json={'query':'all','brands':BRANDS})
+        self.assertEqual(response.status_code,200,response.text)
+        self.assertEqual({d['brand'] for d in response.json()['discs']},set(BRANDS))
+
     def test_directional_shifts(self):
         from catalog import get_disc
         ref=get_disc('innova-leopard3')
