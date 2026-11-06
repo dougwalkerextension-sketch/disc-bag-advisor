@@ -1,6 +1,6 @@
 # Disc Bag Advisor · Fieldwork
 
-A responsive disc golf recommendation app using a local model agent and real MCP tools. Search by one disc, multiple references, or a flight category; filter brands; sort by match, local popularity, speed, or name; inspect manufacturer imagery; save a bag in your browser.
+A responsive disc golf recommendation app using an OpenAI agent and real MCP tools. Search by one disc, multiple references, or a flight category; filter brands; sort by match, local popularity, speed, or name; inspect manufacturer imagery; save a bag in your browser.
 
 ## Run
 
@@ -16,7 +16,14 @@ Open **http://127.0.0.1:8010**. On this Windows installation, DiscBag includes i
 
 The portable runtime is an independent copy of Python's base files with freshly installed packages; its configuration and imports point only inside DiscBag. It is ignored by Git, so a fresh GitHub checkout should follow the virtual-environment setup above. When using `.venv`, select its Python interpreter in VS Code. To install optional browser test and debugger dependencies, run `python -m pip install -r requirements-dev.txt` with your selected local interpreter. Browser tests use installed Edge and the Playwright package from that interpreter.
 
-For model mode, install/start [Ollama](https://ollama.com/) and run `ollama pull mistral:7b`. The default is `mistral:7b`, configured with the `DISC_AGENT_MODEL` environment variable. The only model endpoint is `http://127.0.0.1:11434/api/chat`; no paid model or API key is needed. Set `DISC_AGENT_MODEL` to an empty string for the deterministic workflow. Model errors/timeouts automatically fall back; the UI trace identifies the actual mode.
+## OpenAI configuration
+
+Copy `.env.example` to `.env` and set `OPENAI_API_KEY` in this folder, or set it in the server environment. The default `OPENAI_MODEL` is `gpt-5-mini`; choose another compatible function-calling model if needed. Set `DISC_AGENT_ENABLED=false` to use only catalog tools. Configuration is read for each search. No Ollama service or local model is used.
+
+OpenAI chooses tools through the [Responses API function-calling loop](https://developers.openai.com/api/docs/guides/function-calling). The server calls only `https://api.openai.com/v1/responses`, uses `store: false`, and keeps function results plus encrypted reasoning items in memory between calls. Queries and catalog observations are sent to OpenAI. The API key stays server-side, is not returned to the browser, and `.env` is ignored by Git. Never paste keys into the UI or commit them. API usage is billed to the configured OpenAI account.
+
+Missing keys, authentication failures, quotas, network issues, malformed tool calls, and timeouts return clearly labeled catalog fallback results; there is no local LLM fallback. Directional shifts continue to use deterministic MCP tools directly. The trace reports `openai-model`, `bounded-fallback`, `bounded-workflow` (explicitly disabled), or `bounded-shift`.
+
 
 ## Use and catalog scope
 
@@ -34,7 +41,7 @@ Popularity means **detail-card selections on this installation**, stored in SQLi
 
 ## MCP and agent framework
 
-The official [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) supplies ClientSession, stdio transport, and FastMCP. A custom asyncio orchestrator manages a local model tool loop following [Ollama tool calling](https://docs.ollama.com/capabilities/tool-calling). It does not use LangGraph or the separate FastMCP v2 package. See [AGENT_FRAMEWORK.md](AGENT_FRAMEWORK.md) for the execution graph and controls.
+The official [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) supplies ClientSession, stdio transport, and FastMCP. A custom asyncio orchestrator manages an OpenAI Responses function-calling loop and dispatches those calls to real MCP tools. It does not use LangGraph or the separate FastMCP v2 package. See [AGENT_FRAMEWORK.md](AGENT_FRAMEWORK.md) for the execution graph and controls.
 
 External MCP hosts can launch the same tools using their actual Python executable and absolute path:
 
@@ -46,7 +53,7 @@ Tools are `search_discs`, `rank_discs`, `manufacturer_image`, and `record_select
 
 ## Recovery and records
 
-Invalid input receives 422, unknown discs 404, and tool outages a friendly 503. Browser requests time out after 70 seconds; model planning after 25 seconds; the workflow after 65 seconds. Read tools retry once, selection increments never retry. Failed searches retain previous visible results and saved bags.
+Invalid input receives 422, unknown discs 404, and tool outages a friendly 503. Browser requests time out after 70 seconds; model planning after 40 seconds; the workflow after 65 seconds. Read tools retry once, selection increments never retry. Failed searches retain previous visible results and saved bags.
 
 Manufacturer requests use fixed HTTPS source URLs, a hostname allowlist, bounded redirects, two MB page limits, eight-second network timeouts, one-day image URL caching, and stale-cache fallback. Missing metadata, rate limits, hotlink restrictions, and browser image failures show recovery messages with an official-page link. Metadata can occasionally identify a promotional image; review imagery when expanding the catalog.
 
@@ -61,8 +68,8 @@ The server binds to localhost with host/origin checks. This is a single-user app
 .\.venv\Scripts\python.exe tests/check_model.py
 ```
 
-The first command runs offline checks including real MCP transport. The second verifies live Ollama tool calling. `tests/browser_check.py`, `tests/browser_shift_check.py`, and `tests/browser_sidebar_check.py` use installed Edge and locally installed Playwright; no external project paths are added. See [WORK_LOG.md](WORK_LOG.md) and [ONE_PAGE_SUMMARY.md](ONE_PAGE_SUMMARY.md).
+The first command runs offline checks including real MCP transport. The second verifies live OpenAI tool calling (uses the configured API key and incurs API usage). `tests/browser_check.py`, `tests/browser_shift_check.py`, and `tests/browser_sidebar_check.py` use installed Edge and locally installed Playwright; no external project paths are added. See [WORK_LOG.md](WORK_LOG.md) and [ONE_PAGE_SUMMARY.md](ONE_PAGE_SUMMARY.md).
 
 ## Standalone verification
 
-Run `.runtime/python.exe tests/check_standalone.py` (or the Python in your local `.venv`). This checks interpreter/import paths, runs real MCP search/ranking, and verifies MCP uses this interpreter, with no sibling project dependency. The base app works without Ollama through its bounded fallback; model planning requires a separately installed Ollama service and model, and manufacturer imagery requires internet access.
+Run `.runtime/python.exe tests/check_standalone.py` (or the Python in your local `.venv`). This checks interpreter/import paths, runs real MCP search/ranking, and verifies MCP uses this interpreter, with no sibling project dependency. The base app works without OpenAI connectivity through its bounded fallback; OpenAI planning requires an API key and internet access. Manufacturer imagery also requires internet access.

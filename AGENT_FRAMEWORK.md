@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The framework is a custom bounded Python asyncio orchestrator (`agent.py`) with a local Ollama tool loop (`model_agent.py`). FastAPI/Uvicorn serves the browser UI. The official MCP Python SDK provides ClientSession, stdio_client, and mcp.server.fastmcp.FastMCP. SQLite provides persistence. MCP is the tool protocol; Ollama/Mistral provides model decisions. No external agent framework is implied.
+The framework is a custom bounded Python asyncio orchestrator (`agent.py`) with an OpenAI Responses tool loop (`model_agent.py`). FastAPI/Uvicorn serves the browser UI. The official MCP Python SDK provides ClientSession, stdio_client, and mcp.server.fastmcp.FastMCP. SQLite provides persistence. MCP is the tool protocol; OpenAI provides model decisions. No external agent framework is implied.
 
 ```mermaid
 flowchart TD
@@ -10,7 +10,7 @@ flowchart TD
   B --> C{Details or recommendation?}
   C -- Details --> D[Fetch manufacturer image through MCP]
   D --> E[Record explicit selection once]
-  C -- Recommendation --> F{Local model enabled?}
+  C -- Recommendation --> F{OpenAI enabled?}
   F -- Yes --> G[Model selects search tool]
   G --> H[Observe candidates and refine or rank]
   H --> I[Host enforces preferences and invokes MCP]
@@ -30,11 +30,11 @@ Post-search directional refinement uses a `bounded-shift` branch: validated refe
 
 ## Planning and authority
 
-The default local model is `mistral:7b`; `DISC_AGENT_MODEL` selects another installed tool-capable model. The loop permits four chat turns, at most two calls processed per turn, and a 25-second planning deadline. Search observations are fed back to the model, which can refine a search and select ranking. Missing calls get a reminder within the same finite budget.
+The default OpenAI model is `gpt-5-mini`; `OPENAI_MODEL` selects another compatible function-calling model. Server-side `OPENAI_API_KEY` is read from this folder?s `.env` or the process environment. `DISC_AGENT_ENABLED=false` disables model calls. The loop permits four chat turns, exactly one function call processed per response, and a 40-second planning deadline. Search observations are fed back to the model, which can refine a search and select ranking. Strict function schemas and required single-tool calls constrain responses. Missing/malformed calls trigger fallback.
 
 The recommendation model sees only search/rank tools. The host overrides model-proposed brand filters, bag exclusions, sort order, and candidate lists with validated preferences and actual search observations. The model-facing rank schema omits candidate payloads; the host injects them into the full MCP call. This avoids copying large data through model output and prevents fabricated final results. Model query normalization can still misunderstand intent; result reasons identify the interpreted reference comparison.
 
-Failure invokes deterministic search of the original query, observation of empty/nonempty candidates, and ranking only when useful. Brand preferences are never silently relaxed. The modes `local-model`, `bounded-workflow`, and `bounded-fallback` identify actual execution; the fallback is not described as an LLM agent.
+Failure invokes deterministic search of the original query, observation of empty/nonempty candidates, and ranking only when useful. Brand preferences are never silently relaxed. The modes `openai-model`, `bounded-workflow`, and `bounded-fallback` identify actual execution; the fallback is not described as an LLM agent.
 
 ## Budgets, failures, and audit
 
@@ -48,4 +48,8 @@ This is a local, single-user architecture with inspectable tools and optional mo
 
 ## Standalone execution
 
-The installed app owns a portable Python runtime and all packages inside `.runtime/`; a fresh checkout may instead create `.venv`. Launchers resolve only these local environments. The MCP subprocess uses `sys.executable` from the same environment, so it shares no Python files with another project. Browser QA imports its own installed Playwright package. Ollama remains optional, with bounded fallback when unavailable.
+The installed app owns a portable Python runtime and all packages inside `.runtime/`; a fresh checkout may instead create `.venv`. Launchers resolve only these local environments. The MCP subprocess uses `sys.executable` from the same environment, so it shares no Python files with another project. Browser QA imports its own installed Playwright package. OpenAI connectivity is optional for basic catalog searches, with an explicit bounded fallback when unavailable.
+
+## OpenAI transport and credential handling
+
+The fixed Responses API endpoint receives HTTPS requests via HTTPX with server-side Bearer authentication, store:false, and parallel_tool_calls:false. Strict tool schemas expose only normalized search text or sorting; the host still injects actual catalog candidates, brand filters, sort order, and bag exclusions into MCP. All response output items, including encrypted reasoning, are retained only in memory and replayed with function_call_output for the next response. No provider response is needed after final ranking: the UI renders actual MCP results. Up to four Responses calls fit within the planning deadline; provider failures do not retry automatically. Error bodies and keys are excluded from result payloads and audit records. Sanitized failure categories appear in the trace and UI.

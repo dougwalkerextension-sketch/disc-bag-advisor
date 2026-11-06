@@ -53,14 +53,18 @@ async def run_agent(query=None, brands=None, sort='match', bag=None, disc_id=Non
                             result.update(await call(session,'rank_discs',{'candidates':found['candidates'],'sort':sort,'bag':bag or []}))
                         else: result['message']=found['message']
                     else:
-                        model=os.environ.get('DISC_AGENT_MODEL','mistral:7b').strip()
+                        from model_agent import settings, OpenAIUnavailable
+                        config=settings()
+                        model=config['model']
+                        fallback_reason=None
                         modeled=None
-                        if model:
+                        if config['enabled']:
                             from model_agent import recommend_with_model
                             try:
                                 modeled=await recommend_with_model(session,call,discovered,model,query,brands or [],sort,bag or [])
                             except Exception as error:
-                                trace.append(dict(tool='local_model',status='fallback',error_type=type(error).__name__))
+                                fallback_reason=error.reason if isinstance(error,OpenAIUnavailable) else ('timeout' if isinstance(error,TimeoutError) else 'connection_or_response')
+                                trace.append(dict(tool='openai_model',status='fallback',error_type=type(error).__name__,reason=fallback_reason))
                                 result['mode']='bounded-fallback'
                         if modeled:
                             result.update(modeled)
@@ -72,6 +76,9 @@ async def run_agent(query=None, brands=None, sort='match', bag=None, disc_id=Non
                                 ranked=await call(session,'rank_discs',{'candidates':found['candidates'],'sort':sort,'bag':bag or []})
                                 result.update(ranked)
                             result['reference']=found['reference']
+                        if fallback_reason:
+                            notice=('OpenAI is not connected. Add OPENAI_API_KEY to DiscBag/.env.' if fallback_reason=='not_configured' else 'OpenAI is temporarily unavailable ('+fallback_reason+').')
+                            result['message']=(result.get('message','')+' '+notice+' Showing catalog matches.').strip()
     except Exception:
         trace.append(dict(tool='workflow',status='failed'))
         result['message']='The recommendation tools are temporarily unavailable. Please retry. Your bag is saved in this browser.'

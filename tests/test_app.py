@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 os.environ['DISC_DATA_DIR']=tempfile.mkdtemp(prefix='disc-test-')
-os.environ['DISC_AGENT_MODEL']=''
+os.environ['DISC_AGENT_ENABLED']='false'
 from tools_server import search_discs, shift_discs, rank_discs, record_selection, manufacturer_image, allowed
 from agent import run_agent
 from app import app

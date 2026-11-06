@@ -30,7 +30,7 @@ except AssertionError:
 else:
     raise AssertionError('Filesystem guard did not run')
 sys.path.insert(0,str(ROOT))
-os.environ['DISC_AGENT_MODEL']=''
+os.environ['DISC_AGENT_ENABLED']='false'
 os.environ.pop('PYTHONPATH',None)
 os.environ.pop('PYTHONHOME',None)
 from agent import run_agent
