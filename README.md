@@ -12,7 +12,9 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
-Open **http://127.0.0.1:8010**. The app now lives in `C:/Users/dougw/DiscBag`. `./start.ps1` uses a local virtual environment when present, otherwise the existing Python runtime at `../DGRag/.runtime/python.exe`. In this VS Code workspace, run the **Start Disc Bag Advisor** task, or run `../DGRag/.runtime/python.exe app.py` in the terminal. The included VS Code launch configuration also supports F5 with the Python debugger extension installed. This independent app does not read the Poe app's `.env`.
+Open **http://127.0.0.1:8010**. On this Windows installation, DiscBag includes its own portable Python 3.12 runtime and packages under `.runtime/`. Launch with `./start.cmd` or the VS Code **Start Disc Bag Advisor** task. F5 uses this local runtime and requires the Python debugger extension. `start.ps1` is also available. Both launchers prefer a local `.venv` if present, otherwise use only this folder's `.runtime`. No sibling project folder is used.
+
+The portable runtime is an independent copy of Python's base files with freshly installed packages; its configuration and imports point only inside DiscBag. It is ignored by Git, so a fresh GitHub checkout should follow the virtual-environment setup above. When using `.venv`, select its Python interpreter in VS Code. To install optional browser test and debugger dependencies, run `python -m pip install -r requirements-dev.txt` with your selected local interpreter. Browser tests use installed Edge and the Playwright package from that interpreter.
 
 For model mode, install/start [Ollama](https://ollama.com/) and run `ollama pull mistral:7b`. The default is `mistral:7b`, configured with the `DISC_AGENT_MODEL` environment variable. The only model endpoint is `http://127.0.0.1:11434/api/chat`; no paid model or API key is needed. Set `DISC_AGENT_MODEL` to an empty string for the deterministic workflow. Model errors/timeouts automatically fall back; the UI trace identifies the actual mode.
 
@@ -59,4 +61,8 @@ The server binds to localhost with host/origin checks. This is a single-user app
 .\.venv\Scripts\python.exe tests/check_model.py
 ```
 
-The first command runs offline checks including real MCP transport. The second verifies live Ollama tool calling. `tests/browser_check.py` is workspace QA for installed Edge/Playwright; adjust its optional driver path elsewhere. See [WORK_LOG.md](WORK_LOG.md) and [ONE_PAGE_SUMMARY.md](ONE_PAGE_SUMMARY.md).
+The first command runs offline checks including real MCP transport. The second verifies live Ollama tool calling. `tests/browser_check.py`, `tests/browser_shift_check.py`, and `tests/browser_sidebar_check.py` use installed Edge and locally installed Playwright; no external project paths are added. See [WORK_LOG.md](WORK_LOG.md) and [ONE_PAGE_SUMMARY.md](ONE_PAGE_SUMMARY.md).
+
+## Standalone verification
+
+Run `.runtime/python.exe tests/check_standalone.py` (or the Python in your local `.venv`). This checks interpreter/import paths, runs real MCP search/ranking, and verifies MCP uses this interpreter, with no sibling project dependency. The base app works without Ollama through its bounded fallback; model planning requires a separately installed Ollama service and model, and manufacturer imagery requires internet access.

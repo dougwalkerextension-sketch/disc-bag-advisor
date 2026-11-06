@@ -2,9 +2,7 @@
 import json
 import sys
 from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'.tools/disc-browser'))
 import re
-sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'DGRag/.tools/disc-browser'))
 from playwright.sync_api import sync_playwright, expect
 
 with sync_playwright() as p:

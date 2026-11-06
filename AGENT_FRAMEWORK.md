@@ -45,3 +45,7 @@ The workflow boundary catches model, startup, transport, and tool failures. Mode
 Every run has a UUID shown in the UI and stored as a separate UTF-8 JSON file under runtime/, avoiding shared-log write collisions. Records include timestamp, original query, preferences, results, references, mode, tool statuses, attempts, and elapsed time. SQLite stores selection counts and image cache. These local operational records are not immutable compliance logs. Build decisions and checks are recorded separately in WORK_LOG.md.
 
 This is a local, single-user architecture with inspectable tools and optional model planning. It has no distributed queue, scheduled crawl, remote tool registration, or multi-user identity. External MCP hosts may launch the server over stdio.
+
+## Standalone execution
+
+The installed app owns a portable Python runtime and all packages inside `.runtime/`; a fresh checkout may instead create `.venv`. Launchers resolve only these local environments. The MCP subprocess uses `sys.executable` from the same environment, so it shares no Python files with another project. Browser QA imports its own installed Playwright package. Ollama remains optional, with bounded fallback when unavailable.
