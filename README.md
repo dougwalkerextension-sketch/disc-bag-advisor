@@ -68,7 +68,7 @@ The server binds to localhost with host/origin checks. This is a single-user app
 .\.venv\Scripts\python.exe tests/check_model.py
 ```
 
-The first command runs offline checks including real MCP transport. The second verifies live OpenAI tool calling (uses the configured API key and incurs API usage). `tests/browser_check.py`, `tests/browser_shift_check.py`, and `tests/browser_sidebar_check.py` use installed Edge and locally installed Playwright; no external project paths are added. See [ONE_PAGE_SUMMARY.md](ONE_PAGE_SUMMARY.md) for the current app, [APP_HISTORY.md](APP_HISTORY.md) for its brief evolution, and [WORK_LOG.md](WORK_LOG.md) for the detailed record.
+The first command runs offline checks including real MCP transport. The second verifies live OpenAI tool calling (uses the configured API key and incurs API usage). `tests/browser_check.py`, `tests/browser_shift_check.py`, and `tests/browser_sidebar_check.py` use installed Edge and locally installed Playwright; no external project paths are added. See [ONE_PAGE_SUMMARY.md](ONE_PAGE_SUMMARY.md) for the current app and its brief history, and [WORK_LOG.md](WORK_LOG.md) for the detailed record.
 
 ## Standalone verification
 
