@@ -1,5 +1,5 @@
 const $=id=>document.getElementById(id);
-let bag=[],catalog=[],active=null,searchVersion=0,detailVersion=0,shiftAnchor=null,lastShift=null;
+let bag=[],catalog=[],active=null,searchVersion=0,detailVersion=0,shiftAnchor=null,lastShift=null,resultContext=null,lastResultDiscs=[];
 try{const saved=JSON.parse(localStorage.getItem('fieldwork-bag')||'[]');if(Array.isArray(saved))bag=saved.filter(x=>typeof x==='string').slice(0,100)}catch{}
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}
 let pendingRequests=0;
@@ -40,19 +40,38 @@ function updateShiftControls(discs){
   for(const b of shiftButtons.children)b.hidden=(b.dataset.direction==='slower'&&shiftAnchor.speed<=1)||(b.dataset.direction==='faster'&&shiftAnchor.speed>=14);
 }
 function setBusy(busy){$('find').disabled=busy;for(const b of shiftButtons.children)b.disabled=busy;$('results').setAttribute('aria-busy',String(busy))}
-async function requestResults(path,body,isShift=false){
+async function requestResults(path,body,isShift=false,preserveEmptyShift=true){
+  const previousContext=resultContext;
+  resultContext={path,body:{...body},isShift};
   const version=++searchVersion;setBusy(true);
   $('status').textContent=isShift?'Finding discs in that direction…':'Finding and ranking matching flights…';
   try{
     const data=await api(path,body);if(version!==searchVersion)return;
     showTrace(data);
-    if(isShift&&!data.discs.length){$('status').textContent=data.message||'No matches for that shift. Try another direction.';return}
-    cards(data.discs);updateShiftControls(data.discs);
+    if(isShift&&!data.discs.length&&preserveEmptyShift){resultContext=previousContext;$('status').textContent=data.message||'No matches for that shift. Try another direction.';return}
+    lastResultDiscs=data.discs;cards(data.discs);updateShiftControls(data.discs);
     lastShift=isShift?{reference_id:body.reference_id,direction:body.direction}:null;
     $('result-title').textContent='Your next possibilities';$('result-count').textContent=`${data.discs.length} matches`;
     $('status').textContent=data.message||'Select a disc for manufacturer imagery and bag options.';
   }catch(e){if(version===searchVersion)$('status').textContent=e.name==='AbortError'?'This is taking too long. Please retry.':e.message}
   finally{if(version===searchVersion)setBusy(false)}
+}
+function refreshPreferences(){
+  const prefs=preferences();
+  if(resultContext){
+    const {path,body,isShift}=resultContext;
+    // Immediately hide mismatching cards, then obtain complete matching results.
+    const preview=lastResultDiscs.filter(d=>!prefs.brands.length||prefs.brands.includes(d.brand));
+    cards(preview);updateShiftControls(preview);
+    $('result-count').textContent=`${preview.length} matches`;
+    return requestResults(path,{...body,...prefs},isShift,false);
+  }
+  // Before the first search, apply choices to the local catalog preview.
+  const discs=prefs.brands.length?catalog.filter(d=>prefs.brands.includes(d.brand)&&!bag.includes(d.id)):
+    catalog.filter(d=>['leopard3','river','crave'].includes(d.name.toLowerCase()));
+  cards(discs);
+  $('result-count').textContent=prefs.brands.length?`${discs.length} discs`:`${catalog.length} discs / ${new Set(catalog.map(d=>d.brand)).size} brands`;
+  $('status').textContent=prefs.brands.length?'Showing your selected brands. Search for a flight to find recommendations.':'Choose a starting point above. Recommendations exclude discs already in your bag.';
 }
 async function search(event){
   event?.preventDefault();const query=$('query').value.trim();
@@ -102,9 +121,10 @@ async function loadStock(d,version){
 $('stock-country').onchange=()=>{if(active&&$('detail').open)loadStock(active,detailVersion)};
 $('stock-retry').onclick=()=>{if(active&&$('detail').open)loadStock(active,detailVersion)};
 async function openDisc(d){active=d;const version=++detailVersion;$('detail-brand').textContent=d.brand;$('detail-name').textContent=d.name;$('detail-flight').textContent=`Speed ${d.speed} · Glide ${d.glide} · Turn ${d.turn} · Fade ${d.fade}`;$('manufacturer').href=d.source;$('detail-image').hidden=true;$('detail-image').removeAttribute('src');$('image-status').hidden=false;$('image-status').textContent='Finding manufacturer image…';$('add-bag').textContent=bag.includes(d.id)?'Already in your bag':'Add to my bag';$('add-bag').disabled=bag.includes(d.id);$('detail').showModal();loadStock(d,version);try{const data=await api('/api/discs/'+encodeURIComponent(d.id),{});if(version!==detailVersion)return;showTrace(data);$('image-status').textContent=data.message||'';if(data.image_url&&/^https:\/\//.test(data.image_url)){const img=$('detail-image');img.alt=`${d.brand} ${d.name} — manufacturer image`;img.onload=()=>{if(version===detailVersion){img.hidden=false;$('image-status').hidden=!data.message}};img.onerror=()=>{if(version===detailVersion){img.hidden=true;$('image-status').hidden=false;$('image-status').textContent='The image could not load. Visit the manufacturer page below.'}};img.src=data.image_url}}catch(e){if(version===detailVersion)$('image-status').textContent='Manufacturer image unavailable. Visit the official page below.'}}
-$('search').onsubmit=search;document.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>{$('query').value=b.dataset.query;search()});$('sort').onchange=()=>{if(lastShift)requestResults('/api/shift',{...lastShift,...preferences()},true);else if($('query').value.trim())search()};$('close-detail').onclick=()=>{$('detail').close();detailVersion++};$('detail').addEventListener('cancel',()=>detailVersion++);$('add-bag').onclick=()=>{if(active&&!bag.includes(active.id)){bag.push(active.id);saveBag();$('add-bag').disabled=true;$('add-bag').textContent='Added to your bag'}};$('bag-toggle').onclick=()=>{$('bag-panel').hidden=!$('bag-panel').hidden;if(!$('bag-panel').hidden)$('bag-panel').scrollIntoView({behavior:'smooth'})};
+$('search').onsubmit=search;document.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>{$('query').value=b.dataset.query;search()});$('sort').onchange=refreshPreferences;$('close-detail').onclick=()=>{$('detail').close();detailVersion++};$('detail').addEventListener('cancel',()=>detailVersion++);$('add-bag').onclick=()=>{if(active&&!bag.includes(active.id)){bag.push(active.id);saveBag();$('add-bag').disabled=true;$('add-bag').textContent='Added to your bag'}};$('bag-toggle').onclick=()=>{$('bag-panel').hidden=!$('bag-panel').hidden;if(!$('bag-panel').hidden)$('bag-panel').scrollIntoView({behavior:'smooth'})};
 function renderBrands(data){
   const options=$('brand-options');options.replaceChildren();
+  const filterState=el('p',undefined,'hint');filterState.id='brand-filter-state';filterState.setAttribute('role','status');$('brands').after(filterState);
   const popular=new Set(data.popular_brands||[]);
   const brands=data.brands||[...new Set(data.discs.map(d=>d.brand))].sort();
   for(const brand of brands){
@@ -116,10 +136,12 @@ function renderBrands(data){
   const toggle=$('show-brands');const extra=brands.filter(b=>!popular.has(b)).length;
   toggle.hidden=!extra;
   const update=()=>{const expanded=toggle.getAttribute('aria-expanded')==='true';const selected=[...options.querySelectorAll('label[data-extra="true"] input:checked')].length;
+    const selectedBrands=preferences().brands;
+    filterState.textContent=selectedBrands.length?'Brand filter: '+selectedBrands.join(', '):'Brand filter off - all manufacturers included.';
     toggle.textContent=expanded?'Show less':`Show more (${extra})${selected?` · ${selected} selected`:''}`;
     for(const label of options.children)label.hidden=label.dataset.extra==='true'&&!expanded;
   };
   toggle.onclick=()=>{toggle.setAttribute('aria-expanded',String(toggle.getAttribute('aria-expanded')!=='true'));update()};
-  options.onchange=update;update();
+  options.onchange=()=>{update();refreshPreferences()};update();
 }
 api('/api/catalog').then(data=>{catalog=data.discs;renderBrands(data);$('result-count').textContent=`${catalog.length} discs / ${data.brands.length} brands`;renderBag();cards(catalog.filter(d=>['leopard3','river','crave'].includes(d.name.toLowerCase())))}).catch(()=>{$('status').textContent='The catalog is unavailable. Refresh to retry.'});renderBag();

@@ -20,7 +20,6 @@ with sync_playwright() as p:
     assert page.locator('#bag-count').inner_text()=='1'
     page.locator('#close-detail').click()
     page.locator('#brands input[value="MVP"]').check()
-    page.locator('#find').click()
     expect(page.locator('#find')).to_be_enabled(timeout=60000)
     assert page.locator('.card').count()==2
     page.screenshot(path=str(Path(__file__).resolve().parents[1]/'runtime/desktop.png'),full_page=True)
