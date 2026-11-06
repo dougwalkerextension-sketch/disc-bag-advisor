@@ -3,3 +3,19 @@
 .shift-panel{margin:18px 0;padding:14px 16px;background:#e9ede0;border-radius:6px}.shift-panel p{font-size:12px;margin:0}.shift-panel .suggestions{margin-top:8px}.shift-panel button{background:var(--paper)}
 
 #show-brands{font-size:12px;margin-top:10px;padding:6px 10px}#brand-source a{color:var(--ink)}#brand-options{width:100%}aside>.sort-label{margin-top:24px}#brands{margin-top:28px}
+
+/* Compact introduction keeps search and results near the top. */
+header{height:64px}
+.hero{padding:20px 6% 18px;grid-template-columns:1fr 200px;gap:28px}
+.hero .eyebrow{margin-bottom:8px}
+h1{font-size:clamp(28px,3.6vw,44px);line-height:1.1;letter-spacing:-1.5px;margin-bottom:12px}
+.intro{font-size:15px;margin:8px 0 0;max-width:640px}
+.disc-art{min-height:156px}
+.disc{width:132px;height:132px;border-width:7px}
+.disc span{letter-spacing:2px;font-size:10px}
+.disc b{font-size:9px;letter-spacing:1px;margin:6px}
+.disc small{font-size:6px}
+.orbit{width:190px;height:115px}
+.disc-art p{font-size:7px;letter-spacing:1px;margin-top:12px}
+.workspace{padding-top:24px}
+@media(max-width:700px){header{height:60px}.hero{padding:16px 6% 14px;grid-template-columns:1fr;gap:0}h1{font-size:28px;letter-spacing:-1px}}
